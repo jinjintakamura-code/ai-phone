@@ -7,9 +7,13 @@ app.post("/voice", (req, res) => {
   res.type("text/xml");
   res.send(`
     <Response>
-      <Say language="ja-JP">ここまで来ています。</Say>
+      <Say language="ja-JP">サーバーは正常に動いています。</Say>
     </Response>
   `);
 });
 
-app.listen(3000);
+// 🔴 Render必須：PORTを環境から受け取る
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log("Server running on port", PORT);
+});
