@@ -1,35 +1,24 @@
 import express from "express";
+import http from "http";
+import WebSocket from "ws";
 
 const app = express();
-app.use(express.urlencoded({ extended: false }));
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
 
-app.post("/voice", (req, res) => {
-  const digits = req.body.Digits;
+wss.on("connection", (ws) => {
+  console.log("📞 WebSocket 接続");
 
-  let message = `
-ご予約は1番、
-営業時間は2番、
-その他のお問い合わせは3番を押してください。
-`;
+  ws.on("message", (msg) => {
+    const data = JSON.parse(msg);
 
-  if (digits === "1") {
-    message = "ご予約はお電話では承っておりません。食べログをご利用ください。";
-  } else if (digits === "2") {
-    message = "営業時間は午後5時から午後11時までです。";
-  } else if (digits === "3") {
-    message = "恐れ入りますが、営業時間内におかけ直しください。";
-  }
-
-  res.set("Content-Type", "text/xml");
-  res.send(
-`<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Gather input="dtmf" timeout="7">
-    <Say language="ja-JP">${message}</Say>
-  </Gather>
-</Response>`
-  );
+    if (data.event === "start") console.log("📞 通話開始");
+    if (data.event === "media") console.log("🎧 音声データ来た");
+    if (data.event === "stop") console.log("❌ 通話終了");
+  });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT);
+server.listen(PORT, () => {
+  console.log("Server running");
+});
