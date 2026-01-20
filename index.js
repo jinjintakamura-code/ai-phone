@@ -2,8 +2,6 @@ import express from "express";
 import OpenAI from "openai";
 
 const app = express();
-
-// 🔴 これ超重要（Twilio用）
 app.use(express.urlencoded({ extended: false }));
 
 const openai = new OpenAI({
