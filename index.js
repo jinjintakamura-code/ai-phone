@@ -6,7 +6,6 @@ app.use(express.urlencoded({ extended: false }));
 app.post("/voice", (req, res) => {
   res.type("text/xml");
   res.send(`
-    res.send(`
   <Response>
     <Gather input="speech"
             action="https://あなたのRenderURL.onrender.com/voice"
