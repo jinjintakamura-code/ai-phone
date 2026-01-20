@@ -4,22 +4,19 @@ const app = express();
 app.use(express.urlencoded({ extended: false }));
 
 app.post("/voice", (req, res) => {
-  const speech = req.body.SpeechResult;
+  const digits = req.body.Digits;
 
-  let text = "ご用件をどうぞ。";
+  let text = "1を押してください。";
 
-  if (speech) {
-    text = `「${speech}」ですね。ありがとうございます。`;
+  if (digits) {
+    text = `「${digits}」が押されました。`;
   }
 
   res.set("Content-Type", "text/xml");
   res.send(
 `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="speech"
-          language="ja-JP"
-          timeout="5"
-          speechTimeout="auto">
+  <Gather input="dtmf" timeout="5">
     <Say language="ja-JP">${text}</Say>
   </Gather>
 </Response>`
