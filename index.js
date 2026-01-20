@@ -11,7 +11,9 @@ app.post("/voice", (req, res) => {
     </Response>
   `);
 });
-
+app.get("/voice", (req, res) => {
+  res.send("サーバーは正常に動いています（GET）");
+});
 // 🔴 Render必須：PORTを環境から受け取る
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
