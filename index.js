@@ -6,18 +6,26 @@ app.use(express.urlencoded({ extended: false }));
 app.post("/voice", (req, res) => {
   const digits = req.body.Digits;
 
-  let text = "1を押してください。";
+  let message = `
+ご予約は1番、
+営業時間は2番、
+その他のお問い合わせは3番を押してください。
+`;
 
-  if (digits) {
-    text = `「${digits}」が押されました。`;
+  if (digits === "1") {
+    message = "ご予約はお電話では承っておりません。食べログをご利用ください。";
+  } else if (digits === "2") {
+    message = "営業時間は午後5時から午後11時までです。";
+  } else if (digits === "3") {
+    message = "恐れ入りますが、営業時間内におかけ直しください。";
   }
 
   res.set("Content-Type", "text/xml");
   res.send(
 `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="dtmf" timeout="5">
-    <Say language="ja-JP">${text}</Say>
+  <Gather input="dtmf" timeout="7">
+    <Say language="ja-JP">${message}</Say>
   </Gather>
 </Response>`
   );
