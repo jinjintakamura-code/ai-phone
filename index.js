@@ -33,7 +33,7 @@ app.post("/voice", async (req, res) => {
   res.send(`
     <Response>
       <Gather input="speech"
-              action="https://github.com/jinjinyakamura-code/aiphone/edit/main/index.js/voice"
+              action="https://github.com/jinjintakamura-code/aiphone/edit/main/index.js/voice"
               language="ja-JP"
               timeout="5">
         <Say language="ja-JP">${reply}</Say>
