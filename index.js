@@ -24,7 +24,7 @@ app.post("/voice", async (req, res) => {
   res.type("text/xml");
 res.send(`
   <Response>
-    <Gather input="speech" action="/voice" language="ja-JP">
+    <Gather input="speech" action="https://xxxxx.onrender.com/voice"
       <Say language="ja-JP">
         ${text}
       </Say>
