@@ -6,10 +6,16 @@ app.use(express.urlencoded({ extended: false }));
 app.post("/voice", (req, res) => {
   res.type("text/xml");
   res.send(`
-    <Response>
-      <Say language="ja-JP">サーバーは正常に動いています。</Say>
-    </Response>
-  `);
+    res.send(`
+  <Response>
+    <Gather input="speech"
+            action="https://あなたのRenderURL.onrender.com/voice"
+            language="ja-JP"
+            timeout="5">
+      <Say language="ja-JP">起動確認できました。ご用件をどうぞ。</Say>
+    </Gather>
+  </Response>
+`);
 });
 app.get("/voice", (req, res) => {
   res.send("サーバーは正常に動いています（GET）");
