@@ -4,25 +4,17 @@ const app = express();
 app.use(express.urlencoded({ extended: false }));
 
 app.post("/voice", (req, res) => {
-  res.type("text/xml");
-  res.send(`
-    <Response>
-      <Gather input="speech"
-              action="https://あなたのRenderURL.onrender.com/voice"
-              language="ja-JP"
-              timeout="5"
-              actionOnEmptyResult="true">
-        <Say language="ja-JP">
-          ご用件をどうぞ。
-        </Say>
-      </Gather>
+  res.set("Content-Type", "text/xml");
+  res.send(
+`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say language="ja-JP">お電話ありがとうございます。現在AIが対応しています。</Say>
 
-      <!-- ここが超重要：無音でも必ず戻す -->
-      <Redirect method="POST">
-        https://ai-phone-1.onrender.com/voice
-      </Redirect>
-    </Response>
-  `);
+  <!-- これが最重要：Twilioに「切るな、待て」と命令 -->
+  <Pause length="60"/>
+
+</Response>`
+  );
 });
 
 const PORT = process.env.PORT || 3000;
