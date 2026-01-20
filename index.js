@@ -1,20 +1,22 @@
 import express from "express";
 import http from "http";
-import WebSocket from "ws";
+import WebSocket, { WebSocketServer } from "ws";
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+
+const wss = new WebSocketServer({ server });
 
 wss.on("connection", (ws) => {
   console.log("📞 WebSocket 接続");
 
   ws.on("message", (msg) => {
-    const data = JSON.parse(msg);
-
-    if (data.event === "start") console.log("📞 通話開始");
-    if (data.event === "media") console.log("🎧 音声データ来た");
-    if (data.event === "stop") console.log("❌ 通話終了");
+    try {
+      const data = JSON.parse(msg);
+      console.log("event:", data.event);
+    } catch {
+      console.log("raw:", msg.toString());
+    }
   });
 });
 
