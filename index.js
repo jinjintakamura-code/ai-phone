@@ -4,15 +4,21 @@ const app = express();
 app.use(express.urlencoded({ extended: false }));
 
 app.post("/voice", (req, res) => {
+  const userSpeech = req.body.SpeechResult;
+
+  let message = "ご用件をどうぞ。";
+
+  if (userSpeech) {
+    message = `「${userSpeech}」ですね。ありがとうございます。`;
+  }
+
   res.set("Content-Type", "text/xml");
   res.send(
 `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say language="ja-JP">お電話ありがとうございます。現在AIが対応しています。</Say>
-
-  <!-- これが最重要：Twilioに「切るな、待て」と命令 -->
-  <Pause length="60"/>
-
+  <Gather input="speech" language="ja-JP" timeout="5">
+    <Say language="ja-JP">${message}</Say>
+  </Gather>
 </Response>`
   );
 });
