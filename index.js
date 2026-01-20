@@ -22,13 +22,12 @@ app.post("/voice", async (req, res) => {
   const text = ai.choices[0].message.content;
 
   res.type("text/xml");
-  res.send(`
-    <Response>
+res.send(`
+  <Response>
+    <Gather input="speech" action="/voice" language="ja-JP">
       <Say language="ja-JP">
         ${text}
       </Say>
-    </Response>
-  `);
-});
-
-app.listen(3000);
+    </Gather>
+  </Response>
+`);
