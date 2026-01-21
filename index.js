@@ -4,27 +4,52 @@ import WebSocket, { WebSocketServer } from "ws";
 
 const app = express();
 const server = http.createServer(app);
-
 const wss = new WebSocketServer({ server });
+
+let audioChunks = [];
 
 wss.on("connection", (ws) => {
   console.log("📞 WebSocket 接続");
 
-  ws.on("message", (msg) => {
+  ws.on("message", async (msg) => {
     const data = JSON.parse(msg);
 
     if (data.event === "start") {
       console.log("▶️ 通話開始");
+      audioChunks = [];
     }
 
     if (data.event === "media") {
-      // 音声データ（base64）が来てる証拠
-      const payload = data.media.payload;
-      console.log("🎧 音声データ来た（長さ）:", payload.length);
+      const audio = Buffer.from(data.media.payload, "base64");
+      audioChunks.push(audio);
     }
 
     if (data.event === "stop") {
-      console.log("⏹ 通話終了");
+      console.log("⏹ 通話終了 → Whisper送信");
+
+      const audioBuffer = Buffer.concat(audioChunks);
+
+      const form = new FormData();
+      form.append("file", audioBuffer, {
+        filename: "audio.wav",
+        contentType: "audio/wav"
+      });
+      form.append("model", "whisper-1");
+      form.append("language", "ja");
+
+      const response = await fetch(
+        "https://api.openai.com/v1/audio/transcriptions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+          },
+          body: form
+        }
+      );
+
+      const result = await response.json();
+      console.log("📝 Whisper結果:", result.text);
     }
   });
 });
