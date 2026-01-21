@@ -1,7 +1,11 @@
 import http from "http";
 import { WebSocketServer } from "ws";
 
-const server = http.createServer();
+const server = http.createServer((req, res) => {
+  // ★ Render対策：HTTPで必ず応答する
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  res.end("ok");
+});
 
 const wss = new WebSocketServer({ noServer: true });
 
@@ -18,7 +22,6 @@ wss.on("connection", (ws) => {
   });
 });
 
-// ★ これが 31920 対策の核心
 server.on("upgrade", (req, socket, head) => {
   console.log("⬆️ upgrade:", req.url);
 
