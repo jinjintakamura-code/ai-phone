@@ -17,7 +17,14 @@ wss.on("connection", (ws) => {
     if (d.event === "stop") {
 
   // ⑤ Whisper（聞く）
-  const r = await fetch("https://api.openai.com/v1/audio/transcriptions", ...);
+  const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    ...form.getHeaders()
+  },
+  body: form
+});
   const j = await r.json();
   console.log("🧪 Whisper raw response:", j);
   console.log("📝 Whisper:", j.text);
