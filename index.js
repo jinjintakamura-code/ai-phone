@@ -49,7 +49,9 @@ wss.on("connection", (ws) => {
       );
 
       const result = await response.json();
-      console.log("📝 Whisper結果:", result.text);
+
+console.log("🧪 Whisper生レス:", result);   // ★ここ
+console.log("📝 Whisper結果:", result.text);
     }
   });
 });
