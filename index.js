@@ -19,6 +19,7 @@ wss.on("connection", (ws) => {
   // ⑤ Whisper（聞く）
   const r = await fetch("https://api.openai.com/v1/audio/transcriptions", ...);
   const j = await r.json();
+  console.log("🧪 Whisper raw response:", j);
   console.log("📝 Whisper:", j.text);
 
   // ⑥ ChatGPT（考える） ← あなたが今入れたコード
