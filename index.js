@@ -2,7 +2,6 @@ import ffmpeg from "ffmpeg-static";
 import { spawn } from "child_process";
 import http from "http";
 import { WebSocketServer } from "ws";
-import FormData from "form-data";
 // ===== μ-law → WAV 変換関数 =====
 function mulawToWav(mulawBuffer) {
   return new Promise((resolve, reject) => {
@@ -52,30 +51,25 @@ wss.on("connection", (ws) => {
       /* ===== A: Whisper ===== */
      const audio = Buffer.concat(chunks);
 const wavAudio = await mulawToWav(audio);
-      const form = new FormData();
-form.append("file", wavAudio, {
-  filename: "audio.wav",
-  contentType: "audio/wav"
+
+const form = new FormData();
+const blob = new Blob([wavAudio], { type: "audio/wav" });
+
+form.append("file", blob, "audio.wav");
+form.append("model", "whisper-1");
+form.append("language", "ja");
+
+const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+  },
+  body: form
 });
-      form.append("model", "whisper-1");
-      form.append("language", "ja");
 
-      const r = await fetch(
-        "https://api.openai.com/v1/audio/transcriptions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-            ...form.getHeaders()
-          },
-          body: form
-        }
-      );
-
-      const j = await r.json();
-      console.log("🧪 Whisper raw:", j);
-      console.log("📝 Whisper:", j.text);
-
+const j = await r.json();
+console.log("🧪 Whisper raw:", j);
+console.log("📝 Whisper:", j.text);
       if (!j.text) return;
 
       /* ===== B: ChatGPT ===== */
