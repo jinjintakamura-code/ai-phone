@@ -31,7 +31,35 @@ wss.on("connection", (ws) => {
     }
   });
 });
+// ===== B: ChatGPTで返答を考える =====
+const prompt = `
+あなたは飲食店の電話受付AIです。
+丁寧な標準語で対応してください。
+予約、営業時間、場所、混雑状況に答えます。
+不明点は聞き返してください。
+クレームは謝罪→要点確認→店に伝える流れ。
+深夜帯は簡潔に。
 
+お客さまの発話:
+${j.text}
+`;
+
+const cr = await fetch("https://api.openai.com/v1/chat/completions", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    model: "gpt-4o-mini",
+    messages: [{ role: "user", content: prompt }]
+  })
+});
+
+const cj = await cr.json();
+const replyText = cj.choices[0].message.content;
+
+console.log("🤖 AIの返答:", replyText);
 server.on("upgrade", (req, s, h) => {
   if (req.url === "/stream") wss.handleUpgrade(req, s, h, ws => wss.emit("connection", ws));
   else s.destroy();
