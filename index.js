@@ -1,37 +1,36 @@
-import express from "express";
 import http from "http";
 import { WebSocketServer } from "ws";
 
-const app = express();
-const server = http.createServer(app);
+const server = http.createServer((req, res) => {
+  console.log("HTTP request:", req.method, req.url);
+  res.writeHead(200);
+  res.end("ok");
+});
 
-// WebSocketは noServer で作る
 const wss = new WebSocketServer({ noServer: true });
 
-wss.on("connection", (ws) => {
-  console.log("📞 WebSocket 接続");
+wss.on("connection", (ws, request) => {
+  console.log("📞 WebSocket 接続（確定）", request.url);
 
   ws.on("message", (msg) => {
-    const data = JSON.parse(msg);
-
-    if (data.event === "start") console.log("▶️ 通話開始");
-    if (data.event === "media") console.log("🎧 音声データ来た");
-    if (data.event === "stop") console.log("⏹ 通話終了");
+    console.log("WS message raw:", msg.toString().slice(0, 50));
   });
 });
 
-// ★ ここが超重要：upgrade を明示的に処理
-server.on("upgrade", (request, socket, head) => {
-  if (request.url === "/stream") {
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      wss.emit("connection", ws, request);
+server.on("upgrade", (req, socket, head) => {
+  console.log("⬆️ upgrade request 来た:", req.url);
+  console.log("headers:", req.headers);
+
+  if (req.url === "/stream") {
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      wss.emit("connection", ws, req);
     });
   } else {
+    console.log("❌ URL不一致で破棄");
     socket.destroy();
   }
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+server.listen(process.env.PORT || 3000, () => {
   console.log("Server running");
 });
