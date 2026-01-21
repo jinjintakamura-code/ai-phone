@@ -3,7 +3,6 @@ import { spawn } from "child_process";
 import http from "http";
 import { WebSocketServer } from "ws";
 import FormData from "form-data";
-const wavAudio = await mulawToWav(audio);
 // ===== μ-law → WAV 変換関数 =====
 function mulawToWav(mulawBuffer) {
   return new Promise((resolve, reject) => {
