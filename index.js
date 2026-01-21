@@ -50,13 +50,13 @@ wss.on("connection", (ws) => {
       console.log("⏹ 通話終了");
 
       /* ===== A: Whisper ===== */
-      const audio = Buffer.concat(chunks);
-
+     const audio = Buffer.concat(chunks);
+const wavAudio = await mulawToWav(audio);
       const form = new FormData();
-      form.append("file", audio, {
-        filename: "audio.raw",
-        contentType: "audio/basic"
-      });
+form.append("file", wavAudio, {
+  filename: "audio.wav",
+  contentType: "audio/wav"
+});
       form.append("model", "whisper-1");
       form.append("language", "ja");
 
