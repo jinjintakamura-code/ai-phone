@@ -3,7 +3,27 @@ import { spawn } from "child_process";
 import http from "http";
 import { WebSocketServer } from "ws";
 import FormData from "form-data";
+// ===== μ-law → WAV 変換関数 =====
+function mulawToWav(mulawBuffer) {
+  return new Promise((resolve, reject) => {
+    const ff = spawn(ffmpeg, [
+      "-f", "mulaw",
+      "-ar", "8000",
+      "-ac", "1",
+      "-i", "pipe:0",
+      "-f", "wav",
+      "pipe:1"
+    ]);
 
+    const chunks = [];
+    ff.stdout.on("data", d => chunks.push(d));
+    ff.on("close", () => resolve(Buffer.concat(chunks)));
+    ff.on("error", reject);
+
+    ff.stdin.write(mulawBuffer);
+    ff.stdin.end();
+  });
+}
 const server = http.createServer((req, res) => {
   res.writeHead(200);
   res.end("ok");
