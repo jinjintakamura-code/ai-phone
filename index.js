@@ -1,32 +1,32 @@
 import http from "http";
 import { WebSocketServer } from "ws";
 
-const server = http.createServer((req, res) => {
-  console.log("HTTP request:", req.method, req.url);
-  res.writeHead(200);
-  res.end("ok");
-});
+const server = http.createServer();
 
 const wss = new WebSocketServer({ noServer: true });
 
-wss.on("connection", (ws, request) => {
-  console.log("📞 WebSocket 接続（確定）", request.url);
+wss.on("connection", (ws) => {
+  console.log("📞 WebSocket 接続");
 
   ws.on("message", (msg) => {
-    console.log("WS message raw:", msg.toString().slice(0, 50));
+    try {
+      const data = JSON.parse(msg);
+      console.log("event:", data.event);
+    } catch {
+      console.log("raw:", msg.toString().slice(0, 50));
+    }
   });
 });
 
+// ★ これが 31920 対策の核心
 server.on("upgrade", (req, socket, head) => {
-  console.log("⬆️ upgrade request 来た:", req.url);
-  console.log("headers:", req.headers);
+  console.log("⬆️ upgrade:", req.url);
 
   if (req.url === "/stream") {
     wss.handleUpgrade(req, socket, head, (ws) => {
-      wss.emit("connection", ws, req);
+      wss.emit("connection", ws);
     });
   } else {
-    console.log("❌ URL不一致で破棄");
     socket.destroy();
   }
 });
