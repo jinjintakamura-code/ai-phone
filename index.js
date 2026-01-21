@@ -1,39 +1,40 @@
 import http from "http";
 import { WebSocketServer } from "ws";
+import FormData from "form-data";
 
 const server = http.createServer((req, res) => {
-  // ★ Render対策：HTTPで必ず応答する
-  res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("ok");
+  res.writeHead(200); res.end("ok");
 });
 
 const wss = new WebSocketServer({ noServer: true });
+let chunks = [];
 
 wss.on("connection", (ws) => {
-  console.log("📞 WebSocket 接続");
+  ws.on("message", async (msg) => {
+    const d = JSON.parse(msg);
+    if (d.event === "start") chunks = [];
+    if (d.event === "media") chunks.push(Buffer.from(d.media.payload, "base64"));
+    if (d.event === "stop") {
+      const audio = Buffer.concat(chunks);
+      const form = new FormData();
+      form.append("file", audio, { filename: "audio.raw", contentType: "audio/basic" });
+      form.append("model", "whisper-1");
+      form.append("language", "ja");
 
-  ws.on("message", (msg) => {
-    try {
-      const data = JSON.parse(msg);
-      console.log("event:", data.event);
-    } catch {
-      console.log("raw:", msg.toString().slice(0, 50));
+      const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, ...form.getHeaders() },
+        body: form
+      });
+      const j = await r.json();
+      console.log("📝 Whisper:", j.text);
     }
   });
 });
 
-server.on("upgrade", (req, socket, head) => {
-  console.log("⬆️ upgrade:", req.url);
-
-  if (req.url === "/stream") {
-    wss.handleUpgrade(req, socket, head, (ws) => {
-      wss.emit("connection", ws);
-    });
-  } else {
-    socket.destroy();
-  }
+server.on("upgrade", (req, s, h) => {
+  if (req.url === "/stream") wss.handleUpgrade(req, s, h, ws => wss.emit("connection", ws));
+  else s.destroy();
 });
 
-server.listen(process.env.PORT || 3000, () => {
-  console.log("Server running");
-});
+server.listen(process.env.PORT || 3000, () => console.log("Server running"));
