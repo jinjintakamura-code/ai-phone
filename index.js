@@ -1,3 +1,5 @@
+import ffmpeg from "ffmpeg-static";
+import { spawn } from "child_process";
 import http from "http";
 import { WebSocketServer } from "ws";
 import FormData from "form-data";
