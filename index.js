@@ -50,6 +50,30 @@ const cj = await cr.json();
 const replyText = cj.choices[0].message.content;
 
 console.log("🤖 AIの返答:", replyText);
+// ===== C: TTS（AIが喋る）=====
+const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    model: "gpt-4o-mini-tts",
+    voice: "alloy",
+    input: replyText
+  })
+});
+
+const audioArrayBuffer = await ttsRes.arrayBuffer();
+const audioBase64 = Buffer.from(audioArrayBuffer).toString("base64");
+
+// 電話に音声を返す
+ws.send(JSON.stringify({
+  event: "media",
+  media: {
+    payload: audioBase64
+  }
+}));
 server.on("upgrade", (req, s, h) => {
   if (req.url === "/stream") wss.handleUpgrade(req, s, h, ws => wss.emit("connection", ws));
   else s.destroy();
