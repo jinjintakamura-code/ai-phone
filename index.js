@@ -11,11 +11,20 @@ wss.on("connection", (ws) => {
   console.log("📞 WebSocket 接続");
 
   ws.on("message", (msg) => {
-    try {
-      const data = JSON.parse(msg);
-      console.log("event:", data.event);
-    } catch {
-      console.log("raw:", msg.toString());
+    const data = JSON.parse(msg);
+
+    if (data.event === "start") {
+      console.log("▶️ 通話開始");
+    }
+
+    if (data.event === "media") {
+      // 音声データ（base64）が来てる証拠
+      const payload = data.media.payload;
+      console.log("🎧 音声データ来た（長さ）:", payload.length);
+    }
+
+    if (data.event === "stop") {
+      console.log("⏹ 通話終了");
     }
   });
 });
