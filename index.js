@@ -2,7 +2,10 @@ import http from "http";
 import { WebSocketServer } from "ws";
 import ffmpeg from "ffmpeg-static";
 import { spawn } from "child_process";
+import express from "express";
 
+const app = express();
+app.use("/public", express.static("public"));
 const server = http.createServer((req, res) => {
   res.writeHead(200);
   res.end("ok");
