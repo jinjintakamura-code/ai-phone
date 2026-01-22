@@ -100,33 +100,38 @@ wss.on("connection", (ws) => {
       console.log("🤖 AIの返答:", replyText);
 
       // C: TTS
-      const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini-tts",
-          voice: "alloy",
-          format: "wav",
-          input: replyText
-        })
-      });
+      import fs from "fs";
+import path from "path";
 
-      const ttsWav = Buffer.from(await ttsRes.arrayBuffer());
-      const mulaw = await wavToMulaw(ttsWav);
+const __dirname = new URL('.', import.meta.url).pathname;
 
-      ws.send(JSON.stringify({
-  event: "media",
-  media: {
-    payload: mulaw.toString("base64"),
-    track: "outbound"   // ★これを必ず
-  }
-}));
-    }
-  });
+// C: TTS
+const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    model: "gpt-4o-mini-tts",
+    voice: "alloy",
+    format: "wav",
+    input: replyText
+  })
 });
+
+const wavBuf = Buffer.from(await ttsRes.arrayBuffer());
+
+// ファイル保存
+const filename = `reply-${Date.now()}.wav`;
+const filePath = path.join(__dirname, "public", filename);
+fs.writeFileSync(filePath, wavBuf);
+
+// Twilioに再生指示を返す
+ws.send(JSON.stringify({
+  event: "twiml",
+  twiml: `<Response><Play>${process.env.BASE_URL}/public/${filename}</Play></Response>`
+}));
 
 server.on("upgrade", (req, socket, head) => {
   if (req.url === "/stream") {
