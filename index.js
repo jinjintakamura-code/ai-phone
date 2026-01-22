@@ -6,9 +6,8 @@ import express from "express";
 
 const app = express();
 app.use("/public", express.static("public"));
-const server = http.createServer((req, res) => {
-  res.writeHead(200);
-  res.end("ok");
+const server = app.listen(process.env.PORT || 3000, () => {
+  console.log("Server running");
 });
 
 const wss = new WebSocketServer({ noServer: true });
