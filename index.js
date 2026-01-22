@@ -11,7 +11,15 @@ const server = app.listen(process.env.PORT || 3000, () => {
 });
 
 const wss = new WebSocketServer({ noServer: true });
-let chunks = [];
+server.on("upgrade", (req, socket, head) => {
+  if (req.url === "/stream") {
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      wss.emit("connection", ws);
+    });
+  } else {
+    socket.destroy();
+  }
+});
 
 // μ-law → WAV
 function mulawToWav(mulawBuffer) {
