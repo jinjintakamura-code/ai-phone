@@ -118,9 +118,12 @@ wss.on("connection", (ws) => {
       const mulaw = await wavToMulaw(ttsWav);
 
       ws.send(JSON.stringify({
-        event: "media",
-        media: { payload: mulaw.toString("base64") }
-      }));
+  event: "media",
+  media: {
+    payload: mulaw.toString("base64"),
+    track: "outbound"   // ★これを必ず
+  }
+}));
     }
   });
 });
