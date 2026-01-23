@@ -89,9 +89,10 @@ wss.on("connection", ws => {
   console.log("🎧 media bytes:", b.length);
   chunks.push(b);
 }
-    if (d.event === "stop") {
-      console.log("⏹ 通話終了");
-
+   if (d.event === "stop") {
+  console.log("🧱 total bytes:", Buffer.concat(chunks).length);
+  // 以降は同じ
+}
       const audio = Buffer.concat(chunks);
       const wavAudio = await mulawToWav(audio);
 
