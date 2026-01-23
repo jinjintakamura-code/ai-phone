@@ -1,85 +1,39 @@
+import express from "express";
 import http from "http";
-import { WebSocketServer } from "ws";
-import WebSocket from "ws";
+import fs from "fs";
+import path from "path";
 
-const server = http.createServer();
-const wss = new WebSocketServer({ server });
+const app = express();
+app.use("/public", express.static("public"));
+const server = http.createServer(app);
 
-const OPENAI_KEY = process.env.OPENAI_API_KEY;
-let openaiReady = false;
+app.post("/voice", async (req, res) => {
+  // 仮テキスト
+  const replyText = "お電話ありがとうございます。ご用件をお伺いします。";
 
-wss.on("connection", (twilioWs) => {
-  console.log("📞 Twilio connected");
-
-  let streamSid = null;
-
-  const openaiWs = new WebSocket(
-    "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview",
-    {
-      headers: {
-        Authorization: `Bearer ${OPENAI_KEY}`,
-        "OpenAI-Beta": "realtime=v1"
-      }
-    }
-  );
-
-  openaiWs.on("open", () => {
-    openaiReady = true;
-    console.log("🤖 OpenAI connected");
-
-    openaiWs.send(JSON.stringify({
-      type: "session.update",
-      session: {
-        instructions: "あなたは飲食店の電話受付AIです。丁寧な標準語で対応してください。",
-        voice: "alloy",
-        audio_format: "mulaw",
-        input_audio_format: "mulaw",
-        turn_detection: { type: "server_vad" }
-      }
-    }));
+  const tts = await fetch("https://api.openai.com/v1/audio/speech", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini-tts",
+      voice: "alloy",
+      input: replyText,
+      format: "wav"
+    })
   });
 
-  // Twilio -> OpenAI
-  twilioWs.on("message", (msg) => {
-    const d = JSON.parse(msg);
+  const buf = Buffer.from(await tts.arrayBuffer());
+  if (!fs.existsSync("public")) fs.mkdirSync("public");
+  fs.writeFileSync("public/reply.wav", buf);
 
-    if (d.event === "start") streamSid = d.streamSid;
-
-    if (d.event === "media" && openaiReady && openaiWs.readyState === 1) {
-      openaiWs.send(JSON.stringify({
-        type: "input_audio_buffer.append",
-        audio: d.media.payload
-      }));
-    }
-
-    if (d.event === "stop" && openaiReady && openaiWs.readyState === 1) {
-      openaiWs.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
-      openaiWs.send(JSON.stringify({ type: "response.create" }));
-    }
-  });
-
-  // OpenAI -> Twilio
-  openaiWs.on("message", (msg) => {
-    const d = JSON.parse(msg);
-
-    const audio =
-      d.delta ||
-      d.audio ||
-      d.output_audio?.delta ||
-      d.response?.output_audio?.delta;
-
-    if (audio && streamSid && twilioWs.readyState === 1) {
-      console.log("🔊 audio chunk");
-      twilioWs.send(JSON.stringify({
-        event: "media",
-        streamSid,
-        media: {
-          payload: audio,
-          track: "outbound"
-        }
-      }));
-    }
-  });
+  res.type("text/xml").send(`
+<Response>
+  <Play>https://ai-phone-final.onrender.com/public/reply.wav</Play>
+</Response>
+`);
 });
 
 server.listen(process.env.PORT || 3000, () =>
