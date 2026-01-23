@@ -84,9 +84,10 @@ wss.on("connection", ws => {
     const d = JSON.parse(msg);
 
     if (d.event === "start") chunks = [];
-    if (d.event === "media")
-      chunks.push(Buffer.from(d.media.payload, "base64"));
-
+    if (d.event === "media") {
+  console.log("media chunk:", d.media.payload.length);
+  chunks.push(Buffer.from(d.media.payload, "base64"));
+}
     if (d.event === "stop") {
       console.log("⏹ 通話終了");
 
