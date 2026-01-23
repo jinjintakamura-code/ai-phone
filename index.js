@@ -50,11 +50,10 @@ server.on("upgrade", (req, socket, head) => {
   } else socket.destroy();
 });
 
-// μ-law → WAV
+// ===== μ-law → WAV（ファイル経由で安全変換）=====
 async function mulawToWav(buf) {
   const raw = path.join(__dirname, "in.mulaw");
   const wav = path.join(__dirname, "out.wav");
-
   fs.writeFileSync(raw, buf);
 
   await new Promise((resolve, reject) => {
@@ -65,6 +64,7 @@ async function mulawToWav(buf) {
       "-i", raw,
       "-acodec","pcm_s16le",
       "-ar","16000",
+      "-ac","1",
       wav
     ]);
     ff.on("close", code => code === 0 ? resolve() : reject());
@@ -72,17 +72,8 @@ async function mulawToWav(buf) {
 
   return fs.readFileSync(wav);
 }
-]);
-    const out=[];
-    ff.stdout.on("data",d=>out.push(d));
-    ff.on("close",()=>resolve(Buffer.concat(out)));
-    ff.on("error",reject);
-    ff.stdin.write(buf);
-    ff.stdin.end();
-  });
-}
 
-// Media Streams
+// ===== Media Streams =====
 wss.on("connection", ws => {
   console.log("📞 WebSocket 接続");
 
@@ -101,29 +92,24 @@ wss.on("connection", ws => {
       console.log("🧱 total bytes:", Buffer.concat(chunks).length);
 
       const audio = Buffer.concat(chunks);
-const wavAudio = await mulawToWav(audio);
+      const wavAudio = await mulawToWav(audio);
 
-// 一度ファイルに保存
-const tempFile = path.join(__dirname, "temp.wav");
-fs.writeFileSync(tempFile, wavAudio);
+      const form = new FormData();
+      form.append("file", fs.createReadStream(path.join(__dirname, "out.wav")));
+      form.append("model", "whisper-1");
+      form.append("language", "ja");
 
-// Whisper
-const form = new FormData();
-form.append("file", fs.createReadStream(tempFile));
-form.append("model", "whisper-1");
-form.append("language", "ja");
-
-const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-  method: "POST",
-  headers: {
-    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-    ...form.getHeaders()
-  },
-  body: form
-});
-
-const j = await r.json();
-console.log("📝 Whisper:", j.text);
+      const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          ...form.getHeaders()
+        },
+        body: form
+      });
+      const j = await r.json();
+      console.log("📝 Whisper:", j.text);
+      if (!j.text) return;
 
       const cr = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -162,7 +148,7 @@ console.log("📝 Whisper:", j.text);
   });
 });
 
-// Start
+// ===== Start =====
 server.listen(process.env.PORT || 3000, () =>
   console.log("Server running")
 );
