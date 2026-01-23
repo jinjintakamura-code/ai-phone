@@ -93,21 +93,29 @@ wss.on("connection", ws => {
       console.log("🧱 total bytes:", Buffer.concat(chunks).length);
 
       const audio = Buffer.concat(chunks);
-      const wavAudio = await mulawToWav(audio);
+const wavAudio = await mulawToWav(audio);
 
-      const form = new FormData();
-      form.append("file", wavAudio, "audio.wav");
-      form.append("model", "whisper-1");
-      form.append("language", "ja");
+// 一度ファイルに保存
+const tempFile = path.join(__dirname, "temp.wav");
+fs.writeFileSync(tempFile, wavAudio);
 
-      const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-        body: form
-      });
-      const j = await r.json();
-      console.log("📝 Whisper:", j.text);
-      if (!j.text) return;
+// Whisper
+const form = new FormData();
+form.append("file", fs.createReadStream(tempFile));
+form.append("model", "whisper-1");
+form.append("language", "ja");
+
+const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    ...form.getHeaders()
+  },
+  body: form
+});
+
+const j = await r.json();
+console.log("📝 Whisper:", j.text);
 
       const cr = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
