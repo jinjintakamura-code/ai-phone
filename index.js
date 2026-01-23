@@ -57,22 +57,24 @@ wss.on("connection", (twilioWs) => {
 
   // OpenAI -> Twilio
   openaiWs.on("message", (msg) => {
-    const d = JSON.parse(msg);
+  const d = JSON.parse(msg);
 
-    const audio =
-      d.delta ||
-      d.audio ||
-      d.output_audio?.delta ||
-      d.response?.output_audio?.delta;
+  const audio =
+    d.delta ||
+    d.audio ||
+    d.output_audio?.delta ||
+    d.response?.output_audio?.delta;
 
-    if (audio) {
-      console.log("🔊 audio chunk");
-      twilioWs.send(JSON.stringify({
-        event: "media",
-        media: { payload: audio }
-      }));
-    }
-  });
+  if (audio && streamSid) {
+    twilioWs.send(JSON.stringify({
+      event: "media",
+      streamSid,
+      media: {
+        payload: audio,
+        track: "outbound"
+      }
+    }));
+  }
 });
 
 server.listen(process.env.PORT || 3000, () =>
