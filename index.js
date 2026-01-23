@@ -6,10 +6,11 @@ const server = http.createServer();
 const wss = new WebSocketServer({ server });
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
-let openaiReady = false;
 
 wss.on("connection", (twilioWs) => {
   console.log("📞 Twilio connected");
+
+  let streamSid = null;
 
   const openaiWs = new WebSocket(
     "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview",
@@ -22,7 +23,6 @@ wss.on("connection", (twilioWs) => {
   );
 
   openaiWs.on("open", () => {
-    openaiReady = true;
     console.log("🤖 OpenAI connected");
 
     openaiWs.send(JSON.stringify({
@@ -39,8 +39,11 @@ wss.on("connection", (twilioWs) => {
 
   // Twilio -> OpenAI
   twilioWs.on("message", (msg) => {
-    if (!openaiReady) return;
     const d = JSON.parse(msg);
+
+    if (d.event === "start") {
+      streamSid = d.streamSid;
+    }
 
     if (d.event === "media") {
       openaiWs.send(JSON.stringify({
@@ -57,24 +60,26 @@ wss.on("connection", (twilioWs) => {
 
   // OpenAI -> Twilio
   openaiWs.on("message", (msg) => {
-  const d = JSON.parse(msg);
+    const d = JSON.parse(msg);
 
-  const audio =
-    d.delta ||
-    d.audio ||
-    d.output_audio?.delta ||
-    d.response?.output_audio?.delta;
+    const audio =
+      d.delta ||
+      d.audio ||
+      d.output_audio?.delta ||
+      d.response?.output_audio?.delta;
 
-  if (audio && streamSid) {
-    twilioWs.send(JSON.stringify({
-      event: "media",
-      streamSid,
-      media: {
-        payload: audio,
-        track: "outbound"
-      }
-    }));
-  }
+    if (audio && streamSid) {
+      console.log("🔊 audio chunk");
+      twilioWs.send(JSON.stringify({
+        event: "media",
+        streamSid,
+        media: {
+          payload: audio,
+          track: "outbound"
+        }
+      }));
+    }
+  });
 });
 
 server.listen(process.env.PORT || 3000, () =>
