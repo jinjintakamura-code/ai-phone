@@ -26,15 +26,16 @@ wss.on("connection", (twilioWs) => {
     console.log("🤖 OpenAI connected");
 
     openaiWs.send(JSON.stringify({
-  type: "session.update",
-  session: {
-    instructions: "あなたは飲食店の電話受付AIです。丁寧な標準語で対応してください。",
-    voice: "alloy",
-    audio_format: "mulaw",
-    input_audio_format: "mulaw",
-    turn_detection: { type: "server_vad" }
-  }
-}));
+      type: "session.update",
+      session: {
+        instructions: "あなたは飲食店の電話受付AIです。丁寧な標準語で対応してください。",
+        voice: "alloy",
+        audio_format: "mulaw",
+        input_audio_format: "mulaw",
+        turn_detection: { type: "server_vad" }
+      }
+    }));
+  });
 
   // Twilio -> OpenAI
   twilioWs.on("message", (msg) => {
