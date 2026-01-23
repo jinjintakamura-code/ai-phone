@@ -8,6 +8,7 @@ app.post("/voice", (req, res) => {
   res.type("text/xml").send(`
 <Response>
   <Say voice="alice">テストです。聞こえますか？</Say>
+  <Pause length="600"/>
 </Response>
 `);
 });
