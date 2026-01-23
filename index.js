@@ -21,9 +21,9 @@ wss.on("connection", (twilioWs) => {
   );
 
   openaiWs.on("open", () => {
+  openaiReady = true;
   console.log("🤖 OpenAI connected");
 
-  // ← ここで「音声で返して」と指示する
   openaiWs.send(JSON.stringify({
     type: "session.update",
     session: {
