@@ -1,8 +1,14 @@
+import express from "express";
+const app = express();
+
+app.get("/", (req, res) => {
+  res.send("ok");
+});
 import http from "http";
 import { WebSocketServer } from "ws";
 import WebSocket from "ws";
 
-const server = http.createServer();
+const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
