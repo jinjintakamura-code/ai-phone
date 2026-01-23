@@ -36,7 +36,7 @@ wss.on("connection", (twilioWs) => {
   }));
 });
   // Twilio -> OpenAI
-  openaiWs.on("message", (msg) => {
+ openaiWs.on("message", (msg) => {
   const d = JSON.parse(msg);
 
   const audio =
