@@ -1,18 +1,16 @@
 import http from "http";
 import { WebSocketServer } from "ws";
 import WebSocket from "ws";
-import fs from "fs";
-import path from "path";
-
 
 const server = http.createServer();
 const wss = new WebSocketServer({ server });
-const __dirname = new URL(".", import.meta.url).pathname;
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
+let openaiReady = false;
 
 wss.on("connection", (twilioWs) => {
   console.log("📞 Twilio connected");
+
   let streamSid = null;
 
   const openaiWs = new WebSocket(
@@ -26,6 +24,7 @@ wss.on("connection", (twilioWs) => {
   );
 
   openaiWs.on("open", () => {
+    openaiReady = true;
     console.log("🤖 OpenAI connected");
 
     openaiWs.send(JSON.stringify({
@@ -40,26 +39,27 @@ wss.on("connection", (twilioWs) => {
     }));
   });
 
-  // Twilio → OpenAI
+  // Twilio -> OpenAI
   twilioWs.on("message", (msg) => {
     const d = JSON.parse(msg);
+
     if (d.event === "start") streamSid = d.streamSid;
 
-    if (d.event === "media") {
+    if (d.event === "media" && openaiReady && openaiWs.readyState === 1) {
       openaiWs.send(JSON.stringify({
         type: "input_audio_buffer.append",
         audio: d.media.payload
       }));
     }
 
-    if (d.event === "stop") {
+    if (d.event === "stop" && openaiReady && openaiWs.readyState === 1) {
       openaiWs.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
       openaiWs.send(JSON.stringify({ type: "response.create" }));
     }
   });
 
-  // OpenAI → Twilio
-  openaiWs.on("message", async (msg) => {
+  // OpenAI -> Twilio
+  openaiWs.on("message", (msg) => {
     const d = JSON.parse(msg);
 
     const audio =
@@ -68,22 +68,20 @@ wss.on("connection", (twilioWs) => {
       d.output_audio?.delta ||
       d.response?.output_audio?.delta;
 
-    if (audio && streamSid) {
+    if (audio && streamSid && twilioWs.readyState === 1) {
       console.log("🔊 audio chunk");
-
-      // ① Twilioへ返す
-     if (twilioWs.readyState === 1) { // OPEN
-  twilioWs.send(JSON.stringify({
-    event: "media",
-    streamSid,
-    media: {
-      payload: audio,
-      track: "outbound"
+      twilioWs.send(JSON.stringify({
+        event: "media",
+        streamSid,
+        media: {
+          payload: audio,
+          track: "outbound"
+        }
+      }));
     }
-  }));
-} else {
-  console.log("⚠️ Twilio WS not open yet");
-}
+  });
+});
+
 server.listen(process.env.PORT || 3000, () =>
   console.log("Server running")
 );
