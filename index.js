@@ -30,18 +30,26 @@ wss.on("connection", (twilioWs) => {
 
   openaiWs.on("open", () => {
     console.log("🤖 OpenAI connected");
+// ===== OpenAI TTSをファイルにする =====
+const tts = await fetch("https://api.openai.com/v1/audio/speech", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    model: "gpt-4o-mini-tts",
+    voice: "alloy",
+    input: replyText,
+    format: "wav"
+  })
+});
 
-    openaiWs.send(JSON.stringify({
-      type: "session.update",
-      session: {
-        instructions: "あなたは飲食店の電話受付AIです。丁寧な標準語で対応してください。",
-        voice: "alloy",
-        audio_format: "mulaw",
-        input_audio_format: "mulaw",
-        turn_detection: { type: "server_vad" }
-      }
-    }));
-  });
+const buf = Buffer.from(await tts.arrayBuffer());
+
+// public フォルダに保存
+if (!fs.existsSync("public")) fs.mkdirSync("public");
+fs.writeFileSync("public/reply.wav", buf);
 
   // Twilio -> OpenAI
   twilioWs.on("message", (msg) => {
@@ -84,6 +92,10 @@ wss.on("connection", (twilioWs) => {
           track: "outbound"
         }
       }));
+      twilioWs.send(JSON.stringify({
+  event: "twiml",
+  twiml: `<Response><Play>https://ai-phone-final.onrender.com/public/reply.wav</Play></Response>`
+}));
     }
   });
 });
