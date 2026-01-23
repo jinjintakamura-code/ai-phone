@@ -19,32 +19,20 @@ const __dirname = new URL(".", import.meta.url).pathname;
 let chunks = [];
 let lastReplyFile = null;
 
-// ===== Twilio Webhook =====
+/* ===== ここが大事：Twilioが最初に叩く ===== */
 app.post("/voice", (req, res) => {
-  if (lastReplyFile) {
-    // 直前のTTSを再生
-    const f = lastReplyFile;
-    lastReplyFile = null;
-
-    res.type("text/xml").send(`
-<Response>
-  <Play>${process.env.BASE_URL}/public/${f}</Play>
-</Response>
-`);
-  } else {
-    // まだ返答がない → 聞く
-    res.type("text/xml").send(`
+  res.type("text/xml").send(`
 <Response>
   <Start>
-    <Stream url="wss://${process.env.HOST}/stream" />
+    <Stream url="wss://ai-phone-final.onrender.com/stream" />
   </Start>
   <Pause length="600"/>
 </Response>
 `);
-  }
 });
+/* ========================================= */
 
-// ===== WebSocket Upgrade =====
+// WebSocket upgrade
 server.on("upgrade", (req, socket, head) => {
   if (req.url === "/stream") {
     wss.handleUpgrade(req, socket, head, ws =>
@@ -53,7 +41,7 @@ server.on("upgrade", (req, socket, head) => {
   } else socket.destroy();
 });
 
-// ===== μ-law → WAV =====
+// μ-law → WAV
 function mulawToWav(mulawBuffer) {
   return new Promise((resolve, reject) => {
     const ff = spawn(ffmpeg, [
@@ -73,7 +61,7 @@ function mulawToWav(mulawBuffer) {
   });
 }
 
-// ===== WebSocket: Twilio Media Streams =====
+// Media Streams
 wss.on("connection", ws => {
   console.log("📞 WebSocket 接続");
 
@@ -87,10 +75,10 @@ wss.on("connection", ws => {
     if (d.event === "stop") {
       console.log("⏹ 通話終了");
 
-      // A: Whisper
       const audio = Buffer.concat(chunks);
       const wavAudio = await mulawToWav(audio);
 
+      // Whisper
       const form = new FormData();
       form.append("file", wavAudio, "audio.wav");
       form.append("model", "whisper-1");
@@ -106,12 +94,11 @@ wss.on("connection", ws => {
           body: form
         }
       );
-
       const j = await r.json();
       console.log("📝 Whisper:", j.text);
       if (!j.text) return;
 
-      // B: ChatGPT
+      // ChatGPT
       const cr = await fetch(
         "https://api.openai.com/v1/chat/completions",
         {
@@ -126,12 +113,11 @@ wss.on("connection", ws => {
           })
         }
       );
-
       const cj = await cr.json();
       const replyText = cj.choices[0].message.content;
       console.log("🤖 AIの返答:", replyText);
 
-      // C: TTS
+      // TTS
       const ttsRes = await fetch(
         "https://api.openai.com/v1/audio/speech",
         {
@@ -153,14 +139,12 @@ wss.on("connection", ws => {
       const filename = `reply-${Date.now()}.wav`;
       const filePath = path.join(__dirname, "public", filename);
       fs.writeFileSync(filePath, wavBuf);
-
-      // 再生フラグ
       lastReplyFile = filename;
     }
   });
 });
 
-// ===== Start =====
+// Start
 server.listen(process.env.PORT || 3000, () =>
   console.log("Server running")
 );
