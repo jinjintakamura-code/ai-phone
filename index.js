@@ -6,7 +6,7 @@ const server = http.createServer();
 const wss = new WebSocketServer({ server });
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
-
+let openaiReady = false;
 wss.on("connection", (twilioWs) => {
   console.log("📞 Twilio connected");
 
