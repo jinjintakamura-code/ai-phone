@@ -1,28 +1,26 @@
 import http from "http";
+import { WebSocketServer } from "ws";
 import WebSocket from "ws";
 
 const server = http.createServer();
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocketServer({ server });
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
 
-// Twilio -> this server -> OpenAI Realtime
-wss.on("connection", async (twilioWs) => {
+wss.on("connection", (twilioWs) => {
   console.log("📞 Twilio connected");
 
   const openaiWs = new WebSocket(
     "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview",
     {
       headers: {
-        "Authorization": `Bearer ${OPENAI_KEY}`,
+        Authorization: `Bearer ${OPENAI_KEY}`,
         "OpenAI-Beta": "realtime=v1"
       }
     }
   );
 
-  openaiWs.on("open", () => {
-    console.log("🤖 OpenAI connected");
-  });
+  openaiWs.on("open", () => console.log("🤖 OpenAI connected"));
 
   // Twilio -> OpenAI
   twilioWs.on("message", (msg) => {
