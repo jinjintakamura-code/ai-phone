@@ -12,8 +12,6 @@ app.post("/voice", (req, res) => {
   </Start>
   <Pause length="600"/>
 </Response>
-`);
-});
 
 app.get("/voice", (req, res) => {
   res.type("text/xml").send(`
