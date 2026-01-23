@@ -58,13 +58,15 @@ server.on("upgrade", (req, socket, head) => {
 function mulawToWav(mulawBuffer) {
   return new Promise((resolve, reject) => {
     const ff = spawn(ffmpeg, [
-      "-f", "mulaw",
-      "-ar", "8000",
-      "-ac", "1",
-      "-i", "pipe:0",
-      "-f", "wav",
-      "pipe:1"
-    ]);
+  "-f", "mulaw",
+  "-ar", "8000",
+  "-ac", "1",
+  "-i", "pipe:0",
+  "-acodec", "pcm_s16le",
+  "-ar", "16000",
+  "-f", "wav",
+  "pipe:1"
+]);
     const out = [];
     ff.stdout.on("data", d => out.push(d));
     ff.on("close", () => resolve(Buffer.concat(out)));
