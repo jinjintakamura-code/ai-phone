@@ -44,10 +44,10 @@ wss.on("connection", (twilioWs) => {
     audio: d.media.payload
   }));
 }
-    if (d.event === "stop") {
-      openaiWs.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
-      openaiWs.send(JSON.stringify({ type: "response.create" }));
-    }
+    if (d.event === "stop" && openaiReady) {
+  openaiWs.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
+  openaiWs.send(JSON.stringify({ type: "response.create" }));
+}
   });
 
   // OpenAI -> Twilio
