@@ -36,14 +36,23 @@ wss.on("connection", (twilioWs) => {
   }));
 });
   // Twilio -> OpenAI
-  twilioWs.on("message", (msg) => {
-    const d = JSON.parse(msg);
-    if (d.event === "media" && openaiReady) {
-  openaiWs.send(JSON.stringify({
-    type: "input_audio_buffer.append",
-    audio: d.media.payload
-  }));
-}
+  openaiWs.on("message", (msg) => {
+  const d = JSON.parse(msg);
+
+  const audio =
+    d.delta ||
+    d.audio ||
+    d.output_audio?.delta ||
+    d.response?.output_audio?.delta;
+
+  if (audio) {
+    console.log("🔊 audio chunk");
+    twilioWs.send(JSON.stringify({
+      event: "media",
+      media: { payload: audio }
+    }));
+  }
+});
     if (d.event === "stop" && openaiReady) {
   openaiWs.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
   openaiWs.send(JSON.stringify({ type: "response.create" }));
