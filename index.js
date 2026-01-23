@@ -12,6 +12,14 @@ app.post("/voice", (req, res) => {
 `);
 });
 
+app.get("/voice", (req, res) => {
+  res.type("text/xml").send(`
+<Response>
+  <Say voice="alice">テストです。聞こえますか？</Say>
+</Response>
+`);
+});
+
 const server = http.createServer(app);
 server.listen(process.env.PORT || 3000, () =>
   console.log("Server running")
