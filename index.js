@@ -7,7 +7,9 @@ app.use(express.urlencoded({ extended: true }));
 app.post("/voice", (req, res) => {
   res.type("text/xml").send(`
 <Response>
-  <Say voice="alice">テストです。聞こえますか？</Say>
+  <Start>
+    <Stream url="wss://ai-phone-final.onrender.com/stream" />
+  </Start>
   <Pause length="600"/>
 </Response>
 `);
