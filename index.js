@@ -21,7 +21,19 @@ let lastReplyFile = null;
 
 /* ===== ここが大事：Twilioが最初に叩く ===== */
 app.post("/voice", (req, res) => {
-  res.type("text/xml").send(`
+  if (lastReplyFile) {
+    const f = lastReplyFile;
+    lastReplyFile = null;
+
+    // 直前に作ったTTS音声を再生
+    res.type("text/xml").send(`
+<Response>
+  <Play>https://ai-phone-final.onrender.com/public/${f}</Play>
+</Response>
+`);
+  } else {
+    // まだ返答が無いときは“聞く”
+    res.type("text/xml").send(`
 <Response>
   <Start>
     <Stream url="wss://ai-phone-final.onrender.com/stream" />
@@ -29,6 +41,7 @@ app.post("/voice", (req, res) => {
   <Pause length="600"/>
 </Response>
 `);
+  }
 });
 /* ========================================= */
 
