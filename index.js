@@ -19,20 +19,17 @@ const __dirname = new URL(".", import.meta.url).pathname;
 let chunks = [];
 let lastReplyFile = null;
 
-/* ===== ここが大事：Twilioが最初に叩く ===== */
+// ===== Twilio webhook =====
 app.post("/voice", (req, res) => {
   if (lastReplyFile) {
     const f = lastReplyFile;
     lastReplyFile = null;
-
-    // 直前に作ったTTS音声を再生
     res.type("text/xml").send(`
 <Response>
   <Play>https://ai-phone-final.onrender.com/public/${f}</Play>
 </Response>
 `);
   } else {
-    // まだ返答が無いときは“聞く”
     res.type("text/xml").send(`
 <Response>
   <Start>
@@ -43,9 +40,8 @@ app.post("/voice", (req, res) => {
 `);
   }
 });
-/* ========================================= */
 
-// WebSocket upgrade
+// ===== WebSocket upgrade =====
 server.on("upgrade", (req, socket, head) => {
   if (req.url === "/stream") {
     wss.handleUpgrade(req, socket, head, ws =>
@@ -55,23 +51,17 @@ server.on("upgrade", (req, socket, head) => {
 });
 
 // μ-law → WAV
-function mulawToWav(mulawBuffer) {
+function mulawToWav(buf) {
   return new Promise((resolve, reject) => {
     const ff = spawn(ffmpeg, [
-  "-f", "mulaw",
-  "-ar", "8000",
-  "-ac", "1",
-  "-i", "pipe:0",
-  "-acodec", "pcm_s16le",
-  "-ar", "16000",
-  "-f", "wav",
-  "pipe:1"
-]);
-    const out = [];
-    ff.stdout.on("data", d => out.push(d));
-    ff.on("close", () => resolve(Buffer.concat(out)));
-    ff.on("error", reject);
-    ff.stdin.write(mulawBuffer);
+      "-f","mulaw","-ar","8000","-ac","1","-i","pipe:0",
+      "-acodec","pcm_s16le","-ar","16000","-f","wav","pipe:1"
+    ]);
+    const out=[];
+    ff.stdout.on("data",d=>out.push(d));
+    ff.on("close",()=>resolve(Buffer.concat(out)));
+    ff.on("error",reject);
+    ff.stdin.write(buf);
     ff.stdin.end();
   });
 }
@@ -84,80 +74,66 @@ wss.on("connection", ws => {
     const d = JSON.parse(msg);
 
     if (d.event === "start") chunks = [];
-   if (d.event === "media") {
-  const b = Buffer.from(d.media.payload, "base64");
-  console.log("🎧 media bytes:", b.length);
-  chunks.push(b);
-}
-   if (d.event === "stop") {
-  console.log("🧱 total bytes:", Buffer.concat(chunks).length);
-  // 以降は同じ
-}
+
+    if (d.event === "media") {
+      const b = Buffer.from(d.media.payload, "base64");
+      console.log("🎧 media bytes:", b.length);
+      chunks.push(b);
+    }
+
+    if (d.event === "stop") {
+      console.log("🧱 total bytes:", Buffer.concat(chunks).length);
+
       const audio = Buffer.concat(chunks);
       const wavAudio = await mulawToWav(audio);
 
-      // Whisper
       const form = new FormData();
       form.append("file", wavAudio, "audio.wav");
       form.append("model", "whisper-1");
       form.append("language", "ja");
 
-      const r = await fetch(
-        "https://api.openai.com/v1/audio/transcriptions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
-          },
-          body: form
-        }
-      );
+      const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+        body: form
+      });
       const j = await r.json();
       console.log("📝 Whisper:", j.text);
       if (!j.text) return;
 
-      // ChatGPT
-      const cr = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: [{ role: "user", content: j.text }]
-          })
-        }
-      );
+      const cr = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: j.text }]
+        })
+      });
       const cj = await cr.json();
-      const replyText = cj.choices[0].message.content;
-      console.log("🤖 AIの返答:", replyText);
+      const reply = cj.choices[0].message.content;
+      console.log("🤖 AIの返答:", reply);
 
-      // TTS
-      const ttsRes = await fetch(
-        "https://api.openai.com/v1/audio/speech",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-mini-tts",
-            voice: "alloy",
-            format: "wav",
-            input: replyText
-          })
-        }
-      );
+      const tts = await fetch("https://api.openai.com/v1/audio/speech", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini-tts",
+          voice: "alloy",
+          format: "wav",
+          input: reply
+        })
+      });
 
-      const wavBuf = Buffer.from(await ttsRes.arrayBuffer());
-      const filename = `reply-${Date.now()}.wav`;
-      const filePath = path.join(__dirname, "public", filename);
-      fs.writeFileSync(filePath, wavBuf);
-      lastReplyFile = filename;
+      const buf = Buffer.from(await tts.arrayBuffer());
+      const name = `reply-${Date.now()}.wav`;
+      fs.writeFileSync(path.join(__dirname,"public",name), buf);
+      lastReplyFile = name;
     }
   });
 });
