@@ -38,12 +38,12 @@ wss.on("connection", (twilioWs) => {
   // Twilio -> OpenAI
   twilioWs.on("message", (msg) => {
     const d = JSON.parse(msg);
-    if (d.event === "media") {
-      openaiWs.send(JSON.stringify({
-        type: "input_audio_buffer.append",
-        audio: d.media.payload
-      }));
-    }
+    if (d.event === "media" && openaiReady) {
+  openaiWs.send(JSON.stringify({
+    type: "input_audio_buffer.append",
+    audio: d.media.payload
+  }));
+}
     if (d.event === "stop") {
       openaiWs.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
       openaiWs.send(JSON.stringify({ type: "response.create" }));
