@@ -51,19 +51,27 @@ server.on("upgrade", (req, socket, head) => {
 });
 
 // μ-law → WAV
-function mulawToWav(buf) {
-  return new Promise((resolve, reject) => {
+async function mulawToWav(buf) {
+  const raw = path.join(__dirname, "in.mulaw");
+  const wav = path.join(__dirname, "out.wav");
+
+  fs.writeFileSync(raw, buf);
+
+  await new Promise((resolve, reject) => {
     const ff = spawn(ffmpeg, [
-  "-f","mulaw",
-  "-ar","8000",
-  "-ac","1",
-  "-i","pipe:0",
-  "-vn",
-  "-acodec","pcm_s16le",
-  "-ar","16000",
-  "-ac","1",
-  "-f","wav",
-  "pipe:1"
+      "-f","mulaw",
+      "-ar","8000",
+      "-ac","1",
+      "-i", raw,
+      "-acodec","pcm_s16le",
+      "-ar","16000",
+      wav
+    ]);
+    ff.on("close", code => code === 0 ? resolve() : reject());
+  });
+
+  return fs.readFileSync(wav);
+}
 ]);
     const out=[];
     ff.stdout.on("data",d=>out.push(d));
