@@ -72,18 +72,18 @@ wss.on("connection", (twilioWs) => {
       console.log("🔊 audio chunk");
 
       // ① Twilioへ返す
-      twilioWs.send(JSON.stringify({
-        event: "media",
-        streamSid,
-        media: {
-          payload: audio,
-          track: "outbound"
-        }
-      }));
+     if (twilioWs.readyState === 1) { // OPEN
+  twilioWs.send(JSON.stringify({
+    event: "media",
+    streamSid,
+    media: {
+      payload: audio,
+      track: "outbound"
     }
-  });
-});
-
+  }));
+} else {
+  console.log("⚠️ Twilio WS not open yet");
+}
 server.listen(process.env.PORT || 3000, () =>
   console.log("Server running")
 );
