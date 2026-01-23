@@ -9,7 +9,16 @@ const __dirname = new URL(".", import.meta.url).pathname;
 
 const app = express();
 app.use("/public", express.static("public"));
-
+app.post("/voice", (req, res) => {
+  res.type("text/xml").send(`
+<Response>
+  <Start>
+    <Stream url="wss://ai-phone-final.onrender.com/stream" />
+  </Start>
+  <Pause length="600"/>
+</Response>
+`);
+});
 const server = app.listen(process.env.PORT || 3000, () => {
   console.log("Server running");
 });
