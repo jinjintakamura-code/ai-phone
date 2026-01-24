@@ -22,6 +22,28 @@ app.get("/voice", (req, res) => {
 });
 
 const server = http.createServer(app);
+// --- ここから追加 ---
+const wss = new WebSocketServer({ noServer: true });
+
+server.on("upgrade", (req, socket, head) => {
+  if (req.url === "/stream") {
+    wss.handleUpgrade(req, socket, head, ws =>
+      wss.emit("connection", ws)
+    );
+  } else socket.destroy();
+});
+
+wss.on("connection", ws => {
+  console.log("📞 WebSocket 接続");
+
+  ws.on("message", msg => {
+    const data = JSON.parse(msg);
+    if (data.event === "media") {
+      console.log("🎧 音声パケット受信");
+    }
+  });
+});
+// --- ここまで追加 ---
 server.listen(process.env.PORT || 3000, () =>
   console.log("Server running")
 );
