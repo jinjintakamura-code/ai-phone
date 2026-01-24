@@ -64,7 +64,25 @@ function mulawToWav(mulawBuffer) {
     ff.stdin.end();
   });
 }
+function sendToTwilio(ws, streamSid, audioBuf) {
+  const FRAME = 160; // 20ms
+  let offset = 0;
 
+  while (offset < audioBuf.length) {
+    const chunk = audioBuf.slice(offset, offset + FRAME);
+
+    ws.send(JSON.stringify({
+      event: "media",
+      streamSid,
+      media: {
+        payload: chunk.toString("base64"),
+        track: "outbound"
+      }
+    }));
+
+    offset += FRAME;
+  }
+}
 /* Media Streams */
 wss.on("connection", ws => {
   console.log("📞 WebSocket 接続");
@@ -146,14 +164,7 @@ const audioBase64 = audioBuf.toString("base64");
 console.log("🔊 返す音声サイズ:", audioBase64.length);
 
 // ===== Twilioへ送信 =====
-ws.send(JSON.stringify({
-  event: "media",
-  streamSid,
-  media: {
-    payload: audioBase64,
-    track: "outbound"
-  }
-}));
+sendToTwilio(ws, streamSid, mulaw);
     }
   });
 });
