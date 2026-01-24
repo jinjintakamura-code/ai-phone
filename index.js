@@ -140,15 +140,21 @@ const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
 })
       });
 
-      const audioBuf = Buffer.from(await ttsRes.arrayBuffer());
-      const audioBase64 = audioBuf.toString("base64");
+      const wavBuf = Buffer.from(await ttsRes.arrayBuffer());
+const mulaw = await wavToMulaw(wavBuf);
+const audioBase64 = mulaw.toString("base64");
+
 console.log("🔊 返す音声サイズ:", audioBase64.length);
 console.log("📡 send to streamSid:", streamSid);
-      ws.send(JSON.stringify({
-        event: "media",
-        streamSid,
-        media: { payload: audioBase64, track: "outbound" }
-      }));
+
+ws.send(JSON.stringify({
+  event: "media",
+  streamSid,
+  media: {
+    payload: audioBase64,
+    track: "outbound"
+  }
+}));
     }
   });
 });
