@@ -76,19 +76,20 @@ wss.on("connection", ws => {
   const audio = Buffer.concat(chunks);
 const wavAudio = await mulawToWav(audio);
 
-const form = new FormData();
 const blob = new Blob([wavAudio], { type: "audio/wav" });
 
+const form = new FormData();
 form.append("file", blob, "audio.wav");
 form.append("model", "whisper-1");
 form.append("language", "ja");
-  const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
-    },
-    body: form
-  });
+
+const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+  },
+  body: form
+});
 
 const j = await r.json();
 console.log("🧪 Whisper raw:", j);
@@ -96,7 +97,7 @@ console.log("📝 Whisper:", j.text);
 
 if (!j.text) return;
 
-// ===== B: ChatGPTで返答を作る =====
+// ===== B: ChatGPT =====
 const cr = await fetch("https://api.openai.com/v1/chat/completions", {
   method: "POST",
   headers: {
@@ -106,10 +107,7 @@ const cr = await fetch("https://api.openai.com/v1/chat/completions", {
   body: JSON.stringify({
     model: "gpt-4o-mini",
     messages: [
-      {
-        role: "system",
-        content: "あなたは飲食店の電話受付AIです。丁寧な標準語で対応してください。"
-      },
+      { role: "system", content: "あなたは飲食店の電話受付AIです。丁寧な標準語で対応してください。" },
       { role: "user", content: j.text }
     ]
   })
@@ -119,7 +117,7 @@ const cj = await cr.json();
 const replyText = cj.choices[0].message.content;
 console.log("🤖 AIの返答:", replyText);
 
-// ===== C: TTS（喋らせる）=====
+// ===== C: TTS =====
 const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
   method: "POST",
   headers: {
@@ -129,7 +127,7 @@ const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
   body: JSON.stringify({
     model: "gpt-4o-mini-tts",
     voice: "alloy",
-    format: "mulaw",   // Twilio向け
+    format: "mulaw",
     input: replyText
   })
 });
@@ -137,22 +135,16 @@ const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
 const audioBuf = Buffer.from(await ttsRes.arrayBuffer());
 const audioBase64 = audioBuf.toString("base64");
 
-// ===== 電話に音声を返す =====
+// ===== Twilioへ返す =====
 ws.send(JSON.stringify({
   event: "media",
+  streamSid,
   media: {
-    payload: audioBase64
+    payload: audioBase64,
+    track: "outbound"
   }
 }));
-      if (j.text) {
-        console.log("📝 Whisper:", j.text);
-      } else {
-        console.log("❌ Whisper failed");
-      }
-    }
-  });
-});
-
+    
 server.listen(process.env.PORT || 3000, () =>
   console.log("Server running")
 );
