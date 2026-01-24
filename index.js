@@ -45,7 +45,6 @@ function mulawToWav(mulawBuffer) {
     const out = [];
     ff.stdout.on("data", d => out.push(d));
     ff.on("close", () => resolve(Buffer.concat(out)));
-    ff.on("error", reject);
     ff.stdin.write(mulawBuffer);
     ff.stdin.end();
   });
