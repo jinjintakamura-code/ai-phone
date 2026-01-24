@@ -159,12 +159,11 @@ const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
 });
 
 const audioBuf = Buffer.from(await ttsRes.arrayBuffer());
-const audioBase64 = audioBuf.toString("base64");
 
-console.log("🔊 返す音声サイズ:", audioBase64.length);
+console.log("🔊 返す音声サイズ:", audioBuf.length);
 
 // ===== Twilioへ送信 =====
-sendToTwilio(ws, streamSid, mulaw);
+sendToTwilio(ws, streamSid, audioBuf);
     }
   });
 });
