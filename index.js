@@ -3,7 +3,7 @@ import http from "http";
 import { WebSocketServer } from "ws";
 import ffmpeg from "ffmpeg-static";
 import { spawn } from "child_process";
-
+import { Blob } from "buffer";
 const app = express();
 const server = http.createServer(app);
 
@@ -74,16 +74,14 @@ wss.on("connection", ws => {
   console.log("⏹ 通話終了");
 
   const audio = Buffer.concat(chunks);
-  console.log("🧱 total bytes:", audio.length);
+const wavAudio = await mulawToWav(audio);
 
-  const wavAudio = await mulawToWav(audio);
-  console.log("🎧 wav bytes:", wavAudio.length);
+const form = new FormData();
+const blob = new Blob([wavAudio], { type: "audio/wav" });
 
-  const form = new FormData();
-  form.append("file", wavAudio, "audio.wav");
-  form.append("model", "whisper-1");
-  form.append("language", "ja");
-
+form.append("file", blob, "audio.wav");
+form.append("model", "whisper-1");
+form.append("language", "ja");
   const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
     method: "POST",
     headers: {
