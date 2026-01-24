@@ -78,17 +78,18 @@ wss.on("connection", ws => {
   const wavAudio = await mulawToWav(audio);
 
   const form = new FormData();
-  form.append("file", wavAudio, "audio.wav");
-  form.append("model", "whisper-1");
-  form.append("language", "ja");
+form.append("file", wavAudio, { filename: "audio.wav", contentType: "audio/wav" });
+form.append("model", "whisper-1");
+form.append("language", "ja");
 
-  const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
-    },
-    body: form
-  });
+const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    ...form.getHeaders()
+  },
+  body: form
+});
 
   const j = await r.json();
   console.log("📝 Whisper:", j.text);
