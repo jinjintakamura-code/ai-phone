@@ -100,6 +100,7 @@ if (!j.text) {
 }
 
 console.log("📝 Whisper:", j.text);
+    }
   });
 });
 
