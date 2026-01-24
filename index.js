@@ -117,12 +117,12 @@ const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
           Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          model: "gpt-4o-mini-tts",
-          voice: "alloy",
-          format: "mulaw",
-          input: replyText
-        })
+       body: JSON.stringify({
+  model: "gpt-4o-mini-tts",
+  voice: "alloy",
+  format: "wav",
+  input: replyText
+})
       });
 
       const audioBuf = Buffer.from(await ttsRes.arrayBuffer());
