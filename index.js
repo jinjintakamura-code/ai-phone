@@ -5,22 +5,24 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 
 app.post("/voice", (req, res) => {
-  res.type("text/xml").send(`
-<Response>
-  <Start>
-    <Stream url="wss://ai-phone-final.onrender.com/stream" />
-  </Start>
-  <Pause length="600"/>
-</Response>
-
-app.get("/voice", (req, res) => {
-  res.type("text/xml").send(`
+  const twiml = `
 <Response>
   <Say voice="alice">テストです。聞こえますか？</Say>
+  <Pause length="600"/>
 </Response>
-`);
+`;
+  res.type("text/xml").send(twiml);
 });
 
+app.get("/voice", (req, res) => {
+  const twiml = `
+<Response>
+  <Say voice="alice">テストです。聞こえますか？</Say>
+  <Pause length="600"/>
+</Response>
+`;
+  res.type("text/xml").send(twiml);
+});
 const server = http.createServer(app);
 // --- ここから追加 ---
 const wss = new WebSocketServer({ noServer: true });
