@@ -90,9 +90,6 @@ form.append("language", "ja");
     body: form
   });
 
-  const j = await r.json();
-  console.log("🧪 Whisper raw:", j);
-  console.log("📝 Whisper:", j.text);
 const j = await r.json();
 console.log("🧪 Whisper raw:", j);
 console.log("📝 Whisper:", j.text);
