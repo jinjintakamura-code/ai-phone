@@ -70,29 +70,32 @@ wss.on("connection", ws => {
       chunks.push(buf);
     }
 
-    if (d.event === "stop") {
-      console.log("⏹ 通話終了");
+   if (d.event === "stop") {
+  console.log("⏹ 通話終了");
 
-      const audio = Buffer.concat(chunks);
-      const wavAudio = await mulawToWav(audio);
+  const audio = Buffer.concat(chunks);
+  console.log("🧱 total bytes:", audio.length);
 
-      const form = new FormData();
-      const blob = new Blob([wavAudio], { type: "audio/wav" });
+  const wavAudio = await mulawToWav(audio);
+  console.log("🎧 wav bytes:", wavAudio.length);
 
-      form.append("file", blob, "audio.wav");
-      form.append("model", "whisper-1");
-      form.append("language", "ja");
+  const form = new FormData();
+  form.append("file", wavAudio, "audio.wav");
+  form.append("model", "whisper-1");
+  form.append("language", "ja");
 
-      const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
-        },
-        body: form
-      });
+  const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+    },
+    body: form
+  });
 
-      const j = await r.json();
-      console.log("🧪 Whisper raw:", j);
+  const j = await r.json();
+  console.log("🧪 Whisper raw:", j);
+  console.log("📝 Whisper:", j.text);
+}
 
       if (j.text) {
         console.log("📝 Whisper:", j.text);
