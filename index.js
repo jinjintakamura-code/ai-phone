@@ -1,3 +1,6 @@
+import ffmpeg from "ffmpeg-static";
+import { spawn } from "child_process";
+import FormData from "form-data";
 import express from "express";
 import http from "http";
 import { WebSocketServer } from "ws";
@@ -33,7 +36,25 @@ server.on("upgrade", (req, socket, head) => {
 });
 
 let chunks = [];
-
+// μ-law → WAV 変換
+function mulawToWav(mulawBuffer) {
+  return new Promise((resolve, reject) => {
+    const ff = spawn(ffmpeg, [
+      "-f", "mulaw",
+      "-ar", "8000",
+      "-ac", "1",
+      "-i", "pipe:0",
+      "-f", "wav",
+      "pipe:1"
+    ]);
+    const out = [];
+    ff.stdout.on("data", d => out.push(d));
+    ff.on("close", () => resolve(Buffer.concat(out)));
+    ff.on("error", reject);
+    ff.stdin.write(mulawBuffer);
+    ff.stdin.end();
+  });
+}
 wss.on("connection", ws => {
   console.log("📞 WebSocket 接続");
 
@@ -50,10 +71,28 @@ wss.on("connection", ws => {
       chunks.push(buf);
     }
 
-    if (d.event === "stop") {
-      console.log("⏹ 通話終了");
-      console.log("🧱 total bytes:", Buffer.concat(chunks).length);
-    }
+   if (d.event === "stop") {
+  console.log("⏹ 通話終了");
+
+  const audio = Buffer.concat(chunks);
+  const wavAudio = await mulawToWav(audio);
+
+  const form = new FormData();
+  form.append("file", wavAudio, "audio.wav");
+  form.append("model", "whisper-1");
+  form.append("language", "ja");
+
+  const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+    },
+    body: form
+  });
+
+  const j = await r.json();
+  console.log("📝 Whisper:", j.text);
+}
   });
 });
 
