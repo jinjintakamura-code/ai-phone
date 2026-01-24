@@ -95,7 +95,6 @@ wss.on("connection", ws => {
   const j = await r.json();
   console.log("🧪 Whisper raw:", j);
   console.log("📝 Whisper:", j.text);
-}
 
       if (j.text) {
         console.log("📝 Whisper:", j.text);
