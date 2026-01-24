@@ -1,8 +1,8 @@
-import ffmpeg from "ffmpeg-static";
-import { spawn } from "child_process";
 import express from "express";
 import http from "http";
 import { WebSocketServer } from "ws";
+import ffmpeg from "ffmpeg-static";
+import { spawn } from "child_process";
 
 const app = express();
 const server = http.createServer(app);
@@ -19,23 +19,11 @@ const twiml = `
 app.post("/voice", (req, res) => {
   res.type("text/xml").send(twiml);
 });
-
 app.get("/voice", (req, res) => {
   res.type("text/xml").send(twiml);
 });
 
-const wss = new WebSocketServer({ noServer: true });
-
-server.on("upgrade", (req, socket, head) => {
-  if (req.url === "/stream") {
-    wss.handleUpgrade(req, socket, head, ws => {
-      wss.emit("connection", ws);
-    });
-  } else socket.destroy();
-});
-
-let chunks = [];
-// μ-law → WAV 変換
+// μ-law → WAV
 function mulawToWav(mulawBuffer) {
   return new Promise((resolve, reject) => {
     const ff = spawn(ffmpeg, [
@@ -54,6 +42,18 @@ function mulawToWav(mulawBuffer) {
     ff.stdin.end();
   });
 }
+
+const wss = new WebSocketServer({ noServer: true });
+let chunks = [];
+
+server.on("upgrade", (req, socket, head) => {
+  if (req.url === "/stream") {
+    wss.handleUpgrade(req, socket, head, ws => {
+      wss.emit("connection", ws);
+    });
+  } else socket.destroy();
+});
+
 wss.on("connection", ws => {
   console.log("📞 WebSocket 接続");
 
@@ -70,36 +70,35 @@ wss.on("connection", ws => {
       chunks.push(buf);
     }
 
-   if (d.event === "stop") {
-  console.log("⏹ 通話終了");
+    if (d.event === "stop") {
+      console.log("⏹ 通話終了");
 
-  const audio = Buffer.concat(chunks);
-  const wavAudio = await mulawToWav(audio);
+      const audio = Buffer.concat(chunks);
+      const wavAudio = await mulawToWav(audio);
 
-  const form = new FormData();
-const blob = new Blob([wavAudio], { type: "audio/wav" });
+      const form = new FormData();
+      const blob = new Blob([wavAudio], { type: "audio/wav" });
 
-form.append("file", blob, "audio.wav");
-form.append("model", "whisper-1");
-form.append("language", "ja");
+      form.append("file", blob, "audio.wav");
+      form.append("model", "whisper-1");
+      form.append("language", "ja");
 
-const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-  method: "POST",
-  headers: {
-    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
-  },
-  body: form
-});
+      const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+        },
+        body: form
+      });
 
-const j = await r.json();
-console.log("🧪 Whisper raw:", j);
+      const j = await r.json();
+      console.log("🧪 Whisper raw:", j);
 
-if (!j.text) {
-  console.log("❌ Whisper failed");
-  return;
-}
-
-console.log("📝 Whisper:", j.text);
+      if (j.text) {
+        console.log("📝 Whisper:", j.text);
+      } else {
+        console.log("❌ Whisper failed");
+      }
     }
   });
 });
