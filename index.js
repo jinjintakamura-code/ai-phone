@@ -92,7 +92,14 @@ const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
 });
 
   const j = await r.json();
-  console.log("📝 Whisper:", j.text);
+console.log("🧪 Whisper raw:", j);
+
+if (!j.text) {
+  console.log("❌ Whisper failed");
+  return;
+}
+
+console.log("📝 Whisper:", j.text);
 }
   });
 });
