@@ -64,7 +64,7 @@ function mulawToWav(mulawBuffer) {
     ff.stdin.end();
   });
 }
-function sendToTwilio(ws, streamSid, audioBuf) {
+async function sendToTwilio(ws, streamSid, audioBuf) {
   const FRAME = 160; // 20ms
   let offset = 0;
 
@@ -81,6 +81,9 @@ function sendToTwilio(ws, streamSid, audioBuf) {
     }));
 
     offset += FRAME;
+
+    // 🔴 ここが超重要：20ms待つ
+    await new Promise(r => setTimeout(r, 20));
   }
 }
 /* Media Streams */
@@ -162,6 +165,7 @@ const audioBuf = Buffer.from(await ttsRes.arrayBuffer());
 
 console.log("🔊 返す音声サイズ:", audioBuf.length);
 
+await sendToTwilio(ws, streamSid, audioBuf);
 // ===== Twilioへ送信 =====
 sendToTwilio(ws, streamSid, audioBuf);
     }
