@@ -73,10 +73,9 @@ wss.on("connection", ws => {
     const d = JSON.parse(msg);
 
     if (d.event === "start") {
-      chunks = [];
-      streamSid = d.start.streamSid;
-      console.log("▶️ 通話開始");
-    }
+  streamSid = d.streamSid;
+  console.log("▶️ 通話開始:", streamSid);
+}
 
     if (d.event === "media") {
       chunks.push(Buffer.from(d.media.payload, "base64"));
