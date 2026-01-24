@@ -6,7 +6,6 @@ app.use(express.urlencoded({ extended: true }));
 
 app.post("/voice", (req, res) => {
   const twiml = `
-const twiml = `
 <Response>
   <Start>
     <Stream url="wss://ai-phone-final.onrender.com/stream" />
