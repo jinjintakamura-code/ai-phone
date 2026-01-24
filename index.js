@@ -4,7 +4,23 @@ import { WebSocketServer } from "ws";
 import ffmpeg from "ffmpeg-static";
 import { spawn } from "child_process";
 
-
+function wavToMulaw(wavBuffer) {
+  return new Promise((resolve, reject) => {
+    const ff = spawn(ffmpeg, [
+      "-i", "pipe:0",
+      "-ar", "8000",
+      "-ac", "1",
+      "-f", "mulaw",
+      "pipe:1"
+    ]);
+    const out = [];
+    ff.stdout.on("data", d => out.push(d));
+    ff.on("close", () => resolve(Buffer.concat(out)));
+    ff.on("error", reject);
+    ff.stdin.write(wavBuffer);
+    ff.stdin.end();
+  });
+}
 const app = express();
 app.use(express.urlencoded({ extended: true }));
 
