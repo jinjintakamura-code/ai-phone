@@ -126,7 +126,7 @@ const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
       const replyText = cj.choices[0].message.content;
       console.log("🤖 AI:", replyText);
 
-      // ===== C: TTS =====
+// ===== C: TTS (Twilio向けraw mulaw) =====
 const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
   method: "POST",
   headers: {
@@ -136,21 +136,17 @@ const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
   body: JSON.stringify({
     model: "gpt-4o-mini-tts",
     voice: "alloy",
-    format: "wav",   // まずWAVで取る
+    format: "mulaw",   // ★ここが最重要
     input: replyText
   })
 });
 
-const wavBuf = Buffer.from(await ttsRes.arrayBuffer());
-
-// ===== WAV → μ-law変換 =====
-const mulawBuf = await wavToMulaw(wavBuf); // ← ffmpegで変換してるやつ
-const audioBase64 = mulawBuf.toString("base64");
+const audioBuf = Buffer.from(await ttsRes.arrayBuffer());
+const audioBase64 = audioBuf.toString("base64");
 
 console.log("🔊 返す音声サイズ:", audioBase64.length);
-console.log("📡 send to streamSid:", streamSid);
 
-// ===== Twilioへ返す =====
+// ===== Twilioへ送信 =====
 ws.send(JSON.stringify({
   event: "media",
   streamSid,
