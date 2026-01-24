@@ -58,7 +58,7 @@ function mulawToWav(mulawBuffer) {
 wss.on("connection", ws => {
   console.log("📞 WebSocket 接続");
 
-  ws.on("message", msg => {
+  ws.on("message", async msg => {
     const d = JSON.parse(msg);
 
     if (d.event === "start") {
