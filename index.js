@@ -32,11 +32,28 @@ server.on("upgrade", (req, socket, head) => {
   } else socket.destroy();
 });
 
+let chunks = [];
+
 wss.on("connection", ws => {
   console.log("📞 WebSocket 接続");
+
   ws.on("message", msg => {
     const d = JSON.parse(msg);
-    if (d.event === "media") console.log("🎧 音声パケット受信");
+
+    if (d.event === "start") {
+      chunks = [];
+      console.log("▶️ 通話開始");
+    }
+
+    if (d.event === "media") {
+      const buf = Buffer.from(d.media.payload, "base64");
+      chunks.push(buf);
+    }
+
+    if (d.event === "stop") {
+      console.log("⏹ 通話終了");
+      console.log("🧱 total bytes:", Buffer.concat(chunks).length);
+    }
   });
 });
 
