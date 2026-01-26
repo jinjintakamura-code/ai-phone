@@ -65,24 +65,14 @@ function mulawToWav(mulawBuffer) {
   });
 }
 async function sendToTwilio(ws, streamSid, audioBuf) {
-  const FRAME = 160; // 20ms
-  let offset = 0;
-
-  while (offset < audioBuf.length) {
-    const chunk = audioBuf.slice(offset, offset + FRAME);
-
+  const FRAME = 160;
+  for (let i = 0; i < audioBuf.length; i += FRAME) {
+    const chunk = audioBuf.slice(i, i + FRAME);
     ws.send(JSON.stringify({
       event: "media",
       streamSid,
-      media: {
-        payload: chunk.toString("base64"),
-        track: "outbound"
-      }
+      media: { payload: chunk.toString("base64"), track: "outbound" }
     }));
-
-    offset += FRAME;
-
-    // 🔴 ここが超重要：20ms待つ
     await new Promise(r => setTimeout(r, 20));
   }
 }
@@ -156,11 +146,11 @@ const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
   body: JSON.stringify({
     model: "gpt-4o-mini-tts",
     voice: "alloy",
-    format: "mulaw",   // ★ここが最重要
+    format: "mulaw",     // ← raw μ-law
+    sample_rate: 8000,  // ← これを必ず入れる
     input: replyText
   })
 });
-
 const audioBuf = Buffer.from(await ttsRes.arrayBuffer());
 
 console.log("🔊 返す音声サイズ:", audioBuf.length);
